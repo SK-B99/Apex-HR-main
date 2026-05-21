@@ -69,7 +69,7 @@ export default function ResetPasswordPage() {
 
     try {
       const response = await fetch(
-        "https://jamika-unexaggerating-camila.ngrok-free.dev/v1/auth/reset-password",
+        "https://hermit-jogger-equinox.ngrok-free.dev/v1/auth/reset-password",
         {
           method: "POST",
           headers: {

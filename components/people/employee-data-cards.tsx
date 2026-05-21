@@ -25,7 +25,7 @@ import { Badge } from "../ui/badge";
 import AddEmployeeForm from "./add-employee";
 import { Button } from "../ui/button";
 
-const BASE_URL = "https://jamika-unexaggerating-camila.ngrok-free.dev";
+const BASE_URL = "https://hermit-jogger-equinox.ngrok-free.dev";
 
 type Employee = {
   id: string;

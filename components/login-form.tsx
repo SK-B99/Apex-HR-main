@@ -79,7 +79,7 @@ export function LoginForm({
 
     try {
       const response = await fetch(
-        "https://jamika-unexaggerating-camila.ngrok-free.dev/v1/auth/login",
+        "https://hermit-jogger-equinox.ngrok-free.dev/v1/auth/login",
         {
           method: "POST",
           headers: {
@@ -137,7 +137,7 @@ export function LoginForm({
 
     try {
       const response = await fetch(
-        "https://jamika-unexaggerating-camila.ngrok-free.dev/v1/auth/forgot-password",
+        "https://hermit-jogger-equinox.ngrok-free.dev/v1/auth/forgot-password",
         {
           method: "POST",
           headers: {

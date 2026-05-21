@@ -65,7 +65,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
     try {
       const response = await fetch(
-        "https://jamika-unexaggerating-camila.ngrok-free.dev/v1/auth/register",
+        "https://hermit-jogger-equinox.ngrok-free.dev/v1/auth/register",
         {
           method: "POST",
           headers: {

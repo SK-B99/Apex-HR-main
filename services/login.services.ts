@@ -2,7 +2,7 @@ import type { LoginPayload, LoginResponse } from "@/models/login.types";
 
 export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
   const response = await fetch(
-    "https://jamika-unexaggerating-camila.ngrok-free.dev/v1/auth/login",
+    "https://hermit-jogger-equinox.ngrok-free.dev/v1/auth/login",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -21,7 +21,7 @@ export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
 
 export async function forgotPassword(email: string): Promise<string> {
   const response = await fetch(
-    "https://jamika-unexaggerating-camila.ngrok-free.dev/v1/auth/forgot-password",
+    "https://hermit-jogger-equinox.ngrok-free.dev/v1/auth/forgot-password",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

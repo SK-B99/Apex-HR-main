@@ -1,7 +1,7 @@
 import type { Policy, FormState } from "@/models/policy.types";
 import { ADMIN_ROLES } from "@/models/policy.types";
 
-const BASE_URL = "https://jamika-unexaggerating-camila.ngrok-free.dev";
+const BASE_URL = "https://hermit-jogger-equinox.ngrok-free.dev";
 
 const getHeaders = (accessToken: string): HeadersInit => ({
   "Content-Type": "application/json",

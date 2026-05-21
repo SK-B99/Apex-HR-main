@@ -14,7 +14,7 @@ import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Loader2 } from "lucide-react";
 
-const BASE_URL = "https://jamika-unexaggerating-camila.ngrok-free.dev";
+const BASE_URL = "https://hermit-jogger-equinox.ngrok-free.dev";
 
 type FormState = {
   name: string;

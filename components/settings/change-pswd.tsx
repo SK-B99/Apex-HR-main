@@ -52,7 +52,7 @@ export function ChangePswdForm({
 
     try {
       const response = await fetch(
-        "https://jamika-unexaggerating-camila.ngrok-free.dev/v1/auth/change-password",
+        "https://hermit-jogger-equinox.ngrok-free.dev/v1/auth/change-password",
         {
           method: "POST",
           headers: {
