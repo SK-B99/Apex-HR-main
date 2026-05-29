@@ -9,6 +9,8 @@ import {
   fetchDepartments,
   createEmployee,
   createDepartment,
+  deleteEmployee,
+  updateEmployee, // ✅ new
 } from "@/services/employee.service";
 import type {
   Employee,
@@ -21,14 +23,35 @@ import {
   EMPTY_DEPARTMENT_FORM,
 } from "@/models/employee.types";
 
+// ✅ Edit form shape — mirrors UpdateUserDto fields
+type EditForm = {
+  firstName: string;
+  lastName: string;
+  contact: string;
+  houseAddress: string;
+  dateOfBirth: string;
+  role: string;
+  departmentId: string;
+  email: string;
+};
+
+const EMPTY_EDIT_FORM: EditForm = {
+  firstName: "",
+  lastName: "",
+  contact: "",
+  houseAddress: "",
+  dateOfBirth: "",
+  role: "",
+  departmentId: "",
+  email: "",
+};
+
 export function useEmployeeViewModel() {
   // ─── Employee List ──────────────────────────────────────────────────────────
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<ApiDepartment[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-
-  // ✅ false = user got a 403 on /v1/users — show restricted state, not error
   const [canViewEmployees, setCanViewEmployees] = useState(true);
 
   // ─── Filters ────────────────────────────────────────────────────────────────
@@ -44,6 +67,14 @@ export function useEmployeeViewModel() {
   const [employeeError, setEmployeeError] = useState<string | null>(null);
   const [employeeSuccess, setEmployeeSuccess] = useState(false);
 
+  // ─── Edit Employee Dialog ───────────────────────────────────────────────────
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [editForm, setEditForm] = useState<EditForm>(EMPTY_EDIT_FORM);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState(false);
+
   // ─── Create Department Dialog ───────────────────────────────────────────────
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
   const [deptForm, setDeptForm] = useState<DepartmentFormState>(
@@ -53,9 +84,10 @@ export function useEmployeeViewModel() {
   const [deptError, setDeptError] = useState<string | null>(null);
   const [deptSuccess, setDeptSuccess] = useState(false);
 
+  // ─── Delete State ────────────────────────────────────────────────────────────
+  const [deletingEmail, setDeletingEmail] = useState<string | null>(null);
+
   // ─── Fetch Departments ───────────────────────────────────────────────────────
-  // ✅ GET /v1/department is open to ALL roles — always safe to call
-  // Extracted into its own named function so it can be called after creating a dept
   const loadDepartments = useCallback(async () => {
     const token = getAccessToken();
     if (!token) return;
@@ -63,7 +95,6 @@ export function useEmployeeViewModel() {
       const data = await fetchDepartments(token);
       setDepartments(data);
     } catch (err) {
-      // ✅ Log with detail so we can see if BASE_URL or token is the issue
       console.error(
         "Failed to fetch departments:",
         err instanceof Error ? err.message : err,
@@ -72,7 +103,6 @@ export function useEmployeeViewModel() {
   }, []);
 
   // ─── Fetch Employees ─────────────────────────────────────────────────────────
-  // ✅ GET /v1/users is restricted to HR_ADMIN and TENANT_ADMIN only
   const loadEmployees = useCallback(async () => {
     setLoadingEmployees(true);
     setFetchError(null);
@@ -88,8 +118,6 @@ export function useEmployeeViewModel() {
       setCanViewEmployees(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-
-      // ✅ 403/permission errors are silently swallowed — show restricted UI
       const isPermissionError =
         message.toLowerCase().includes("permission") ||
         message.toLowerCase().includes("forbidden") ||
@@ -182,6 +210,108 @@ export function useEmployeeViewModel() {
     }
   };
 
+  // ─── Edit Employee ────────────────────────────────────────────────────────────
+  // ✅ Open edit dialog and pre-populate form with existing employee data
+  const handleEditOpen = (emp: Employee) => {
+    setEditingEmployee(emp);
+    setEditForm({
+      firstName: emp.name.split(" ")[0] || "",
+      lastName: emp.name.split(" ").slice(1).join(" ") || "",
+      contact: emp.contact || "",
+      houseAddress: emp.location || "",
+      dateOfBirth: "", // not returned by list API — leave blank for user to fill if needed
+      role: emp.role || "",
+      departmentId: emp.departmentId || "",
+      email: emp.email || "",
+    });
+    setEditError(null);
+    setEditSuccess(false);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditOpenChange = (open: boolean) => {
+    setEditDialogOpen(open);
+    if (!open) {
+      setEditingEmployee(null);
+      setEditForm(EMPTY_EDIT_FORM);
+      setEditError(null);
+      setEditSuccess(false);
+    }
+  };
+
+  const handleEditFieldChange = (key: keyof EditForm, value: string) => {
+    setEditForm((f) => ({ ...f, [key]: value }));
+  };
+
+  // ✅ Submit edit via PATCH /v1/users/:id
+  const handleEditSubmit = async () => {
+    if (!editingEmployee) return;
+    const token = getAccessToken();
+    if (!token) {
+      setEditError("Not authenticated.");
+      return;
+    }
+    setEditLoading(true);
+    setEditError(null);
+    try {
+      await updateEmployee(token, editingEmployee.id, {
+        firstName: editForm.firstName || undefined,
+        lastName: editForm.lastName || undefined,
+        contact: editForm.contact || undefined,
+        houseAddress: editForm.houseAddress || undefined,
+        dateOfBirth: editForm.dateOfBirth || undefined,
+        role: editForm.role || undefined,
+        departmentId: editForm.departmentId || undefined,
+        email: editForm.email || undefined,
+      });
+      // ✅ Update local state so the card reflects changes immediately
+      setEmployees((prev) =>
+        prev.map((e) =>
+          e.id === editingEmployee.id
+            ? {
+                ...e,
+                name: `${editForm.firstName} ${editForm.lastName}`.trim(),
+                avatar:
+                  `${editForm.firstName[0] || ""}${editForm.lastName[0] || ""}`.toUpperCase(),
+                contact: editForm.contact,
+                location: editForm.houseAddress,
+                role: editForm.role,
+                email: editForm.email,
+                departmentId: editForm.departmentId,
+                department:
+                  departments.find((d) => d.id === editForm.departmentId)
+                    ?.name || e.department,
+              }
+            : e,
+        ),
+      );
+      setEditSuccess(true);
+      setTimeout(() => handleEditOpenChange(false), 1500);
+    } catch (err) {
+      setEditError(
+        err instanceof Error ? err.message : "Something went wrong.",
+      );
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // ─── Delete Employee ──────────────────────────────────────────────────────────
+  const handleDeleteEmployee = async (email: string) => {
+    if (!window.confirm(`Are you sure you want to remove ${email}?`)) return;
+    const token = getAccessToken();
+    if (!token) return;
+    setDeletingEmail(email);
+    try {
+      await deleteEmployee(token, email);
+      setEmployees((prev) => prev.filter((e) => e.email !== email));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete employee.");
+    } finally {
+      setDeletingEmail(null);
+    }
+  };
+
   // ─── Create Department ───────────────────────────────────────────────────────
   const setDeptField =
     (key: keyof DepartmentFormState) =>
@@ -213,8 +343,6 @@ export function useEmployeeViewModel() {
     try {
       await createDepartment(token, deptForm);
       setDeptSuccess(true);
-      // ✅ Re-fetch departments so the new one appears immediately in the list
-      // Previously this was missing — the count stayed at 0 after creation
       await loadDepartments();
       setTimeout(() => handleDeptOpenChange(false), 1500);
     } catch (err) {
@@ -254,6 +382,20 @@ export function useEmployeeViewModel() {
     setEmployeeRole: (v: string) => setEmployeeForm((f) => ({ ...f, role: v })),
     handleEmployeeOpenChange,
     handleAddEmployee,
+    // Edit Employee
+    editDialogOpen,
+    editingEmployee,
+    editForm,
+    editLoading,
+    editError,
+    editSuccess,
+    handleEditOpen,
+    handleEditOpenChange,
+    handleEditFieldChange,
+    handleEditSubmit,
+    // Delete
+    deletingEmail,
+    handleDeleteEmployee,
     // Create Department
     deptDialogOpen,
     deptForm,

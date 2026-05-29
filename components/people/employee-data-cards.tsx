@@ -12,6 +12,7 @@ import {
   Phone,
   Search,
   Trash2Icon,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
@@ -27,6 +28,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import AddEmployeeForm from "./add-employee";
 import NewDepartment from "./create-department";
+import EditEmployeeDialog from "./edit-employee"; // ✅ new
 import { useEmployeeViewModel } from "@/viewmodels/useEmployeeViewModel";
 import { STATUS_OPTIONS, STATUS_CONFIG } from "@/models/employee.types";
 import { getUserRole } from "@/lib/auth";
@@ -83,6 +85,20 @@ export default function EmployeeDataCards() {
         </div>
       )}
 
+      {/* ✅ Edit Employee Dialog — rendered once, controlled by ViewModel */}
+      <EditEmployeeDialog
+        open={vm.editDialogOpen}
+        employee={vm.editingEmployee}
+        form={vm.editForm}
+        loading={vm.editLoading}
+        error={vm.editError}
+        success={vm.editSuccess}
+        departments={vm.departments}
+        onOpenChange={vm.handleEditOpenChange}
+        onFieldChange={vm.handleEditFieldChange}
+        onSubmit={vm.handleEditSubmit}
+      />
+
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card className="p-4">
@@ -108,13 +124,12 @@ export default function EmployeeDataCards() {
           <p className="text-muted-foreground text-sm">On Leave</p>
         </Card>
         <Card className="p-4">
-          {/* ✅ Always works — all roles can fetch departments */}
           <p className="text-2xl font-bold">{vm.departments.length}</p>
           <p className="text-muted-foreground text-sm">Departments</p>
         </Card>
       </div>
 
-      {/* ✅ Admin view — full employee list with filters */}
+      {/* Admin view — full employee list */}
       {vm.canViewEmployees ? (
         <>
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -156,8 +171,13 @@ export default function EmployeeDataCards() {
               vm.filteredEmployees.map((emp) => {
                 const statusInfo =
                   STATUS_CONFIG[emp.status] || STATUS_CONFIG.inactive;
+                const isDeleting = vm.deletingEmail === emp.email;
+
                 return (
-                  <Card key={`${emp.id}-${emp.email}`} className="group">
+                  <Card
+                    key={`${emp.id}-${emp.email}`}
+                    className={`group transition-opacity ${isDeleting ? "opacity-50" : ""}`}
+                  >
                     <CardContent className="p-5">
                       <div className="flex gap-3">
                         <Avatar>
@@ -169,26 +189,46 @@ export default function EmployeeDataCards() {
                             {emp.role}
                           </p>
                         </div>
+
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
                               className="size-7 opacity-0 transition-opacity group-hover:opacity-100"
+                              disabled={isDeleting}
                             >
-                              <MoreHorizontal className="size-4" />
+                              {isDeleting ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <MoreHorizontal className="size-4" />
+                              )}
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem>View Profile</DropdownMenuItem>
-                            <DropdownMenuItem>Edit Details</DropdownMenuItem>
+                            {/* ✅ Edit Details — opens pre-populated edit dialog */}
+                            {canManage && (
+                              <DropdownMenuItem
+                                onClick={() => vm.handleEditOpen(emp)}
+                              >
+                                Edit Details
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem>
                               View Leave History
                             </DropdownMenuItem>
+                            {/* ✅ Delete — calls DELETE /v1/users/remove?email= */}
                             {canManage && (
-                              <DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() =>
+                                  vm.handleDeleteEmployee(emp.email)
+                                }
+                                disabled={isDeleting}
+                              >
                                 <Trash2Icon className="mr-2 size-3.5" />
-                                Delete
+                                {isDeleting ? "Deleting..." : "Delete"}
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -234,12 +274,11 @@ export default function EmployeeDataCards() {
           </div>
         </>
       ) : (
-        // ✅ Employee view — show department cards instead of restricted message
+        // Employee view — department cards
         <div className="mt-6">
           <h3 className="text-foreground mb-3 text-sm font-medium">
             Departments
           </h3>
-
           {vm.departments.length === 0 ? (
             <p className="text-muted-foreground py-10 text-center text-sm">
               No departments found.
@@ -253,7 +292,6 @@ export default function EmployeeDataCards() {
                 >
                   <CardContent className="p-5">
                     <div className="flex items-start gap-3">
-                      {/* Department icon */}
                       <div className="bg-primary/10 flex size-10 shrink-0 items-center justify-center rounded-xl">
                         <Building2 className="text-primary size-5" />
                       </div>
@@ -261,10 +299,9 @@ export default function EmployeeDataCards() {
                         <p className="text-foreground truncate font-semibold">
                           {dept.name}
                         </p>
-                        {/* ✅ Show description if available */}
-                        {"description" in dept && dept.description ? (
+                        {dept.description ? (
                           <p className="text-muted-foreground mt-1 line-clamp-2 text-xs leading-relaxed">
-                            {dept.description as string}
+                            {dept.description}
                           </p>
                         ) : (
                           <p className="text-muted-foreground mt-1 text-xs">

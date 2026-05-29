@@ -1,3 +1,5 @@
+// services/employee.service.ts
+
 import type {
   ApiUser,
   ApiDepartment,
@@ -153,5 +155,51 @@ export async function createDepartment(
         ? data.message.join(", ")
         : data?.message || "Failed to create department.",
     );
+  }
+}
+
+// ✅ Delete employee via DELETE /v1/users/remove?email=<email>
+// Backend RemoveUserCommand accepts email, firstName, or lastName as query params.
+// We use email as it is the most unique identifier.
+export async function deleteEmployee(
+  token: string,
+  email: string,
+): Promise<void> {
+  const res = await fetch(
+    `${BASE_URL}/v1/users/remove?email=${encodeURIComponent(email)}`,
+    {
+      method: "DELETE",
+      headers: headers(token),
+    },
+  );
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(data?.message || "Failed to delete employee.");
+  }
+}
+
+// ✅ Update employee via PATCH /v1/users/:id
+export async function updateEmployee(
+  token: string,
+  id: string,
+  data: {
+    firstName?: string;
+    lastName?: string;
+    contact?: string;
+    houseAddress?: string;
+    dateOfBirth?: string;
+    role?: string;
+    departmentId?: string;
+    email?: string;
+  },
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/v1/users/${id}`, {
+    method: "PATCH",
+    headers: headers(token),
+    body: JSON.stringify(data),
+  });
+  const responseData = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(responseData?.message || "Failed to update employee.");
   }
 }
