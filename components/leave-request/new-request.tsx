@@ -1,3 +1,5 @@
+// components/leave-request/new-request.tsx
+
 "use client";
 
 import { Button } from "../ui/button";
@@ -30,6 +32,8 @@ export default function NewRequest() {
     handleSubmit,
     policies,
     loadingPolicies,
+    departments, // ✅ new
+    loadingDepartments, // ✅ new
   } = useLeaveRequestViewModel();
 
   return (
@@ -63,6 +67,7 @@ export default function NewRequest() {
             ) : (
               <>
                 <div className="flex flex-col gap-4 py-2">
+                  {/* Leave Type */}
                   <div className="flex flex-col gap-1.5">
                     <Label>Leave Type</Label>
                     {loadingPolicies ? (
@@ -84,6 +89,31 @@ export default function NewRequest() {
                     )}
                   </div>
 
+                  {/* ✅ Department — user selects their own department
+                      Workaround for JWT not containing departmentId.
+                      Backend requires this field in SubmitLeaveRequestDto. */}
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Your Department</Label>
+                    {loadingDepartments ? (
+                      <p className="text-muted-foreground text-sm">
+                        Loading departments...
+                      </p>
+                    ) : (
+                      <ResponsiveSelect
+                        placeholder="Select your department"
+                        options={departments.map((d) => ({
+                          label: d.name || "",
+                          value: d.id || "",
+                        }))}
+                        value={form.departmentId}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, departmentId: v }))
+                        }
+                      />
+                    )}
+                  </div>
+
+                  {/* Date Range */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-2">
                       <Label>Start Date</Label>
@@ -110,6 +140,7 @@ export default function NewRequest() {
                     </div>
                   </div>
 
+                  {/* Half Day */}
                   <div className="flex items-center gap-4">
                     <Switch
                       id="half-day"
@@ -126,6 +157,7 @@ export default function NewRequest() {
                     </Label>
                   </div>
 
+                  {/* Reason */}
                   <div className="flex flex-col gap-2">
                     <Label>Reason</Label>
                     <Textarea
@@ -142,6 +174,7 @@ export default function NewRequest() {
                     <p className="text-destructive text-sm">{submitError}</p>
                   )}
 
+                  {/* Workflow info */}
                   <div className="bg-secondary/95 rounded-lg border p-3">
                     <div className="flex items-center gap-4 text-sm">
                       <AlertCircle className="text-primary size-4" />

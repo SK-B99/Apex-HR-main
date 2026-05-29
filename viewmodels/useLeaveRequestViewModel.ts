@@ -3,17 +3,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAccessToken, decodeToken } from "@/lib/auth";
+import { getAccessToken } from "@/lib/auth";
 import {
   fetchMyLeaveRequests,
   submitLeaveRequest,
   cancelRequest,
 } from "@/services/leave-request.service";
+import { fetchDepartments } from "@/services/employee.service";
 import type {
   LeaveRequest,
   LeaveRequestFormState,
 } from "@/models/leave-request.types";
 import { EMPTY_LEAVE_REQUEST_FORM } from "@/models/leave-request.types";
+import type { ApiDepartment } from "@/models/employee.types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -28,6 +30,11 @@ export function useLeaveRequestViewModel() {
     { id: string; name: string; type: string }[]
   >([]);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
+
+  // ─── Departments ─────────────────────────────────────────────────────────────
+  // ✅ Fetched on dialog open — used as workaround since JWT has no departmentId
+  const [departments, setDepartments] = useState<ApiDepartment[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
 
   // ─── New Request Dialog ──────────────────────────────────────────────────────
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -79,6 +86,23 @@ export function useLeaveRequestViewModel() {
     }
   };
 
+  // ─── Load Departments ─────────────────────────────────────────────────────────
+  // ✅ GET /v1/department is open to all roles — safe to call for any user
+  // We fetch this when the dialog opens so the user can pick their department
+  const loadDepartments = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setLoadingDepartments(true);
+    try {
+      const data = await fetchDepartments(token);
+      setDepartments(data);
+    } catch (err) {
+      console.error("Failed to load departments", err);
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
   useEffect(() => {
     load();
   }, []);
@@ -103,7 +127,10 @@ export function useLeaveRequestViewModel() {
 
   const handleDialogOpenChange = (open: boolean) => {
     setDialogOpen(open);
-    if (open) loadPolicies();
+    if (open) {
+      loadPolicies();
+      loadDepartments(); // ✅ fetch departments when dialog opens
+    }
     if (!open) resetForm();
   };
 
@@ -117,6 +144,13 @@ export function useLeaveRequestViewModel() {
       setSubmitError("All fields are required.");
       return;
     }
+
+    // ✅ Validate department is selected — required by backend SubmitLeaveRequestDto
+    if (!form.departmentId) {
+      setSubmitError("Please select your department.");
+      return;
+    }
+
     if (form.reason.trim().length < 10) {
       setSubmitError("Reason must be at least 10 characters.");
       return;
@@ -128,17 +162,12 @@ export function useLeaveRequestViewModel() {
       return;
     }
 
-    // ✅ Fix: decodeToken already returns DecodedToken | null which has departmentId?: string
-    // No need for `as any` cast — type is already correct
-    const decoded = decodeToken(token);
-    const departmentId = decoded?.departmentId ?? "";
-
     setSubmitLoading(true);
     setSubmitError(null);
     try {
       await submitLeaveRequest({
         leavePolicyId: form.leavePolicyId,
-        departmentId,
+        departmentId: form.departmentId, // ✅ now comes from user selection
         startDate: form.startDate,
         endDate: form.endDate,
         isHalfDay: form.isHalfDay,
@@ -175,6 +204,9 @@ export function useLeaveRequestViewModel() {
     // Policies
     policies,
     loadingPolicies,
+    // Departments
+    departments, // ✅ exposed for the form select
+    loadingDepartments,
     // New Request
     dialogOpen,
     form,
@@ -193,4 +225,3 @@ export function useLeaveRequestViewModel() {
     setFilterDepartment,
   };
 }
-// ✅ Fix: removed stray `r` character at end of file that caused "unused expression" warning
