@@ -1,158 +1,46 @@
+// components/leave-request/leave-request-cards.tsx
+
 "use client";
 
 import {
   CheckCircle2,
   ChevronRight,
   Clock,
-  MessageSquare,
   XCircle,
+  Loader2,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { Card, CardContent } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Button } from "../ui/button";
+import { useLeaveRequestViewModel } from "@/viewmodels/useLeaveRequestViewModel";
+import { STATUS_CONFIG, TYPE_COLORS } from "@/models/leave-request.types";
+import type { LeaveRequest } from "@/models/leave-request.types";
 
-const statusConfig: Record<
-  string,
-  { label: string; icon: React.ElementType; className: string }
-> = {
-  pending: {
-    label: "Pending",
-    icon: Clock,
-    className: "bg-warning/15 text-warning-foreground border-0",
-  },
-  approved: {
-    label: "Approved",
-    icon: CheckCircle2,
-    className: "bg-success/15 text-success border-0",
-  },
-  rejected: {
-    label: "Rejected",
-    icon: XCircle,
-    className: "bg-destructive/15 text-destructive border-0",
-  },
-};
-
-const typeColors: Record<string, string> = {
-  Annual: "bg-chart-1/10 text-chart-1",
-  Sick: "bg-chart-2/10 text-chart-2",
-  Personal: "bg-chart-3/10 text-chart-3",
-  Unpaid: "bg-muted text-muted-foreground",
+const STATUS_ICONS: Record<string, React.ElementType> = {
+  PENDING: Clock,
+  APPROVED: CheckCircle2,
+  REJECTED: XCircle,
+  CANCELLED: XCircle,
 };
 
 export default function LeaveRequestCards() {
-  const requests = [
-    {
-      id: "LR-2024-089",
-      employee: "Sarah Mitchell",
-      avatar: "SM",
-      role: "HR Admin",
-      type: "Annual",
-      startDate: "Mar 3, 2026",
-      endDate: "Mar 7, 2026",
-      days: 5,
-      status: "pending",
-      submittedAt: "Feb 15, 2026",
-      reason: "Family vacation",
-      approver: "David Kim",
-      comments: 1,
-    },
-    {
-      id: "LR-2024-088",
-      employee: "Alex Chen",
-      avatar: "AC",
-      role: "Frontend Developer",
-      type: "Sick",
-      startDate: "Feb 18, 2026",
-      endDate: "Feb 18, 2026",
-      days: 1,
-      status: "approved",
-      submittedAt: "Feb 17, 2026",
-      reason: "Medical appointment",
-      approver: "Sarah Mitchell",
-      comments: 0,
-    },
-    {
-      id: "LR-2024-087",
-      employee: "Maya Patel",
-      avatar: "MP",
-      role: "UX Designer",
-      type: "Annual",
-      startDate: "Feb 24, 2026",
-      endDate: "Feb 28, 2026",
-      days: 5,
-      status: "approved",
-      submittedAt: "Feb 10, 2026",
-      reason: "Wedding anniversary trip",
-      approver: "David Kim",
-      comments: 2,
-    },
-    {
-      id: "LR-2024-086",
-      employee: "James Wilson",
-      avatar: "JW",
-      role: "Backend Engineer",
-      type: "Personal",
-      startDate: "Feb 14, 2026",
-      endDate: "Feb 14, 2026",
-      days: 1,
-      status: "rejected",
-      submittedAt: "Feb 12, 2026",
-      reason: "Moving to new apartment",
-      approver: "Lisa Tang",
-      comments: 3,
-    },
-    {
-      id: "LR-2024-085",
-      employee: "Priya Sharma",
-      avatar: "PS",
-      role: "Project Manager",
-      type: "Sick",
-      startDate: "Feb 10, 2026",
-      endDate: "Feb 11, 2026",
-      days: 2,
-      status: "approved",
-      submittedAt: "Feb 10, 2026",
-      reason: "Flu recovery",
-      approver: "David Kim",
-      comments: 0,
-    },
-    {
-      id: "LR-2024-084",
-      employee: "Tom Baker",
-      avatar: "TB",
-      role: "Educational Content Creator",
-      type: "Annual",
-      startDate: "Mar 17, 2026",
-      endDate: "Mar 21, 2026",
-      days: 5,
-      status: "pending",
-      submittedAt: "Feb 14, 2026",
-      reason: "Spring break with family",
-      approver: "Lisa Tang",
-      comments: 0,
-    },
-    {
-      id: "LR-2024-083",
-      employee: "Li Wei",
-      avatar: "LW",
-      role: "SAP Consultant",
-      type: "Annual",
-      startDate: "Mar 10, 2026",
-      endDate: "Mar 14, 2026",
-      days: 5,
-      status: "pending",
-      submittedAt: "Feb 13, 2026",
-      reason: "Visiting family abroad",
-      approver: "Lisa Tang",
-      comments: 1,
-    },
-  ];
+  const {
+    requests,
+    pending,
+    approved,
+    rejected,
+    loading,
+    error,
+    handleCancel,
+  } = useLeaveRequestViewModel();
 
-  const renderRow = (req: (typeof requests)[number], showActions = false) => {
-    const statusInfo = statusConfig[req.status];
-    const StatusIcon = statusInfo.icon;
+  const renderRow = (req: LeaveRequest, showActions = false) => {
+    const status = req.status ?? "PENDING";
+    const statusInfo = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING;
+    const StatusIcon = STATUS_ICONS[status] ?? Clock;
+
     return (
       <div
         key={req.id}
@@ -160,36 +48,43 @@ export default function LeaveRequestCards() {
       >
         <Avatar className="size-9">
           <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-            {req.avatar}
+            {/* ✅ Fixed: was req.employee — correct field is req.user per the model and API */}
+            {req.user?.firstName?.[0]}
+            {req.user?.lastName?.[0]}
           </AvatarFallback>
         </Avatar>
+
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="text-foreground text-sm font-medium">
-              {req.employee}
+              {/* ✅ Fixed: was req.employee?.firstName/lastName */}
+              {req.user?.firstName} {req.user?.lastName}
             </p>
-            <span className="text-muted-foreground text-xs">{req.id}</span>
+            <span className="text-muted-foreground text-xs">
+              {req.id?.slice(0, 8)}
+            </span>
           </div>
-          <p className="text-muted-foreground text-xs">{req.role}</p>
+          {/* ✅ Fixed: was req.employee?.role */}
+          <p className="text-muted-foreground text-xs">{req.user?.role}</p>
         </div>
+
         <Badge
           variant="outline"
-          className={`border-0 text-[10px] ${typeColors[req.type] || ""}`}
+          className={`border-0 text-[10px] ${TYPE_COLORS[req.leavePolicy?.type ?? ""] || ""}`}
         >
-          {req.type}
+          {/* ✅ Fixed: was req.leaveType (doesn't exist on model) — correct is req.leavePolicy?.type */}
+          {req.leavePolicy?.type}
         </Badge>
+
         <div className="min-w-28 text-right">
-          <p className="text-foreground text-sm">{req.startDate}</p>
-          {req.days > 1 && (
-            <p className="text-muted-foreground text-xs">to {req.endDate}</p>
-          )}
-        </div>
-        <div>
-          <p className="text-foreground text-sm">{req.days}</p>
+          <p className="text-foreground text-sm">
+            {new Date(req.startDate).toLocaleDateString()}
+          </p>
           <p className="text-muted-foreground text-xs">
-            day{req.days > 1 ? "s" : ""}
+            to {new Date(req.endDate).toLocaleDateString()}
           </p>
         </div>
+
         <Badge
           variant="outline"
           className={`gap-1 text-[10px] ${statusInfo.className}`}
@@ -197,29 +92,16 @@ export default function LeaveRequestCards() {
           <StatusIcon className="size-3" />
           {statusInfo.label}
         </Badge>
-        {req.comments > 0 && (
-          <div className="text-muted-foreground flex items-center gap-1">
-            <MessageSquare className="size-3.5" />
-            <span className="text-xs">{req.comments}</span>
-          </div>
-        )}
-        {showActions ? (
-          <div className="flex items-center gap-1.5">
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-success border-success/30 hover:bg-success/10 hover:text-success h-7 px-2.5 text-xs"
-            >
-              Approve
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive h-7 px-2.5 text-xs"
-            >
-              Reject
-            </Button>
-          </div>
+
+        {showActions && status === "PENDING" ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-destructive border-destructive/30 hover:bg-destructive/10 h-7 px-2.5 text-xs"
+            onClick={() => handleCancel(req.id)}
+          >
+            Cancel
+          </Button>
         ) : (
           <ChevronRight className="text-muted-foreground size-4" />
         )}
@@ -227,11 +109,23 @@ export default function LeaveRequestCards() {
     );
   };
 
+  if (loading)
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="text-muted-foreground size-6 animate-spin" />
+      </div>
+    );
+
+  if (error)
+    return (
+      <p className="text-destructive py-10 text-center text-sm">{error}</p>
+    );
+
   return (
     <Tabs defaultValue="all">
       <TabsList>
         <TabsTrigger value="all">
-          All
+          All{" "}
           <Badge variant="secondary" className="ml-1.5 h-5 text-[10px]">
             {requests.length}
           </Badge>
@@ -242,58 +136,55 @@ export default function LeaveRequestCards() {
             variant="secondary"
             className="bg-warning/15 text-warning-foreground ml-1.5 h-5 text-[10px]"
           >
-            {requests.filter((r) => r.status === "pending").length}
+            {pending.length}
           </Badge>
         </TabsTrigger>
         <TabsTrigger value="approved">Approved</TabsTrigger>
         <TabsTrigger value="rejected">Rejected</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="all">
-        <Card>
-          <CardContent className="p-0">
-            <div className="flex flex-col divide-y">
-              {requests.map((req) => renderRow(req))}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="pending">
-        <Card>
-          <CardContent className="p-0">
-            <div className="flex flex-col divide-y">
-              {requests
-                .filter((r) => r.status === "pending")
-                .map((req) => renderRow(req, true))}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="approved">
-        <Card>
-          <CardContent className="p-0">
-            <div className="flex flex-col divide-y">
-              {requests
-                .filter((r) => r.status === "approved")
-                .map((req) => renderRow(req))}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="rejected">
-        <Card>
-          <CardContent className="p-0">
-            <div className="flex flex-col divide-y">
-              {requests
-                .filter((r) => r.status === "rejected")
-                .map((req) => renderRow(req))}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+      {[
+        {
+          value: "all",
+          data: requests,
+          actions: false,
+          empty: "No requests found.",
+        },
+        {
+          value: "pending",
+          data: pending,
+          actions: true,
+          empty: "No pending requests.",
+        },
+        {
+          value: "approved",
+          data: approved,
+          actions: false,
+          empty: "No approved requests.",
+        },
+        {
+          value: "rejected",
+          data: rejected,
+          actions: false,
+          empty: "No rejected requests.",
+        },
+      ].map(({ value, data, actions, empty }) => (
+        <TabsContent key={value} value={value}>
+          <Card>
+            <CardContent className="p-0">
+              <div className="flex flex-col divide-y">
+                {data.length === 0 ? (
+                  <p className="text-muted-foreground py-10 text-center text-sm">
+                    {empty}
+                  </p>
+                ) : (
+                  data.map((r) => renderRow(r, actions))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      ))}
     </Tabs>
   );
 }

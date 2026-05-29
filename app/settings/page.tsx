@@ -1,6 +1,8 @@
+// app/settings/page.tsx
+
 "use client";
 
-import { useState } from "react";
+// ✅ No more useState here — showChangePswdForm lives in the ViewModel
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -11,9 +13,11 @@ import {
 import ProtectedRoute from "@/components/protected-route";
 import { ChangePswdForm } from "@/components/settings/change-pswd";
 import { Button } from "@/components/ui/button";
+import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel"; // ✅ import ViewModel
 
 export default function Page() {
-  const [showChangePswdForm, setShowChangePswdForm] = useState(false);
+  // ✅ Pull showChangePswdForm and its toggle from the ViewModel instead of local state
+  const { showChangePswdForm, toggleChangePswdForm } = useSettingsViewModel();
 
   return (
     <ProtectedRoute>
@@ -31,12 +35,13 @@ export default function Page() {
           </header>
 
           <div className="flex w-full max-w-4xl flex-1 flex-col gap-4 p-4 pt-0">
+            {/* ✅ Removed absolute positioning — flex layout handles alignment correctly on all screen sizes */}
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-semibold">Settings</h1>
               <Button
                 size="sm"
-                className="absolute right-4 px-3 py-1 text-xs"
-                onClick={() => setShowChangePswdForm(!showChangePswdForm)}
+                className="px-3 py-1 text-xs"
+                onClick={toggleChangePswdForm} // ✅ use ViewModel toggle
               >
                 {showChangePswdForm ? "Cancel" : "Change Password"}
               </Button>
