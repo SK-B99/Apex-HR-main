@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,79 +9,23 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel";
 
 export function ChangePswdForm({
   ...props
 }: React.ComponentProps<typeof Card>) {
-  const router = useRouter();
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters.");
-      setLoading(false);
-      return;
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      setError("Passwords do not match!");
-      setLoading(false);
-      return;
-    }
-
-    const accessToken = localStorage.getItem("accessToken");
-
-    if (!accessToken) {
-      setError("You are not authenticated. Please log in again.");
-      setLoading(false);
-      return;
-    }
-
-    const payload = { oldPassword, newPassword };
-
-    try {
-      const response = await fetch(
-        "https://hermit-jogger-equinox.ngrok-free.dev/v1/auth/change-password",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(payload),
-        },
-      );
-
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        data = null;
-      }
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to change password");
-      }
-
-      setSuccess("Password changed successfully!");
-
-      setTimeout(() => router.push("/dashboard"), 1500);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    oldPassword,
+    setOldPassword,
+    newPassword,
+    setNewPassword,
+    confirmNewPassword,
+    setConfirmNewPassword,
+    loading,
+    error,
+    success,
+    handleSubmit,
+  } = useSettingsViewModel();
 
   return (
     <Card className="ml-auto w-full max-w-sm text-sm" {...props}>
@@ -93,20 +36,6 @@ export function ChangePswdForm({
       <CardContent className="px-4 pb-4">
         <form onSubmit={handleSubmit}>
           <FieldGroup className="flex flex-col gap-3">
-            <Field>
-              {/* <FieldLabel className="text-xs" htmlFor="email">
-                Email
-              </FieldLabel> */}
-              {/* <Input
-                id="email"
-                type="email"
-                required
-                className="h-8 text-sm"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              /> */}
-            </Field>
-
             <Field>
               <FieldLabel className="text-xs" htmlFor="oldPassword">
                 Old Password
