@@ -1,3 +1,5 @@
+// models/employee.types.ts
+
 export type Employee = {
   id: string;
   name: string;
@@ -16,6 +18,7 @@ export type ApiDepartment = {
   id?: string;
   _id?: string;
   name?: string;
+  description?: string; // ✅ added — backend returns this field
 };
 
 export type ApiUser = {

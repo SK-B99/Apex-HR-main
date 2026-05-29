@@ -1,3 +1,5 @@
+// viewmodels/useEmployeeViewModel.ts
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -26,6 +28,9 @@ export function useEmployeeViewModel() {
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
+  // ✅ false = user got a 403 on /v1/users — show restricted state, not error
+  const [canViewEmployees, setCanViewEmployees] = useState(true);
+
   // ─── Filters ────────────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
@@ -48,7 +53,26 @@ export function useEmployeeViewModel() {
   const [deptError, setDeptError] = useState<string | null>(null);
   const [deptSuccess, setDeptSuccess] = useState(false);
 
-  // ─── Fetch Data ─────────────────────────────────────────────────────────────
+  // ─── Fetch Departments ───────────────────────────────────────────────────────
+  // ✅ GET /v1/department is open to ALL roles — always safe to call
+  // Extracted into its own named function so it can be called after creating a dept
+  const loadDepartments = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    try {
+      const data = await fetchDepartments(token);
+      setDepartments(data);
+    } catch (err) {
+      // ✅ Log with detail so we can see if BASE_URL or token is the issue
+      console.error(
+        "Failed to fetch departments:",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }, []);
+
+  // ─── Fetch Employees ─────────────────────────────────────────────────────────
+  // ✅ GET /v1/users is restricted to HR_ADMIN and TENANT_ADMIN only
   const loadEmployees = useCallback(async () => {
     setLoadingEmployees(true);
     setFetchError(null);
@@ -61,21 +85,25 @@ export function useEmployeeViewModel() {
     try {
       const data = await fetchEmployees(token);
       setEmployees(data);
+      setCanViewEmployees(true);
     } catch (err) {
-      setFetchError(err instanceof Error ? err.message : "Unknown error");
+      const message = err instanceof Error ? err.message : "Unknown error";
+
+      // ✅ 403/permission errors are silently swallowed — show restricted UI
+      const isPermissionError =
+        message.toLowerCase().includes("permission") ||
+        message.toLowerCase().includes("forbidden") ||
+        message.toLowerCase().includes("unauthorized") ||
+        message.toLowerCase().includes("403");
+
+      if (isPermissionError) {
+        setCanViewEmployees(false);
+        setEmployees([]);
+      } else {
+        setFetchError(message);
+      }
     } finally {
       setLoadingEmployees(false);
-    }
-  }, []);
-
-  const loadDepartments = useCallback(async () => {
-    const token = getAccessToken();
-    if (!token) return;
-    try {
-      const data = await fetchDepartments(token);
-      setDepartments(data);
-    } catch (err) {
-      console.error("Failed to fetch departments", err);
     }
   }, []);
 
@@ -185,6 +213,9 @@ export function useEmployeeViewModel() {
     try {
       await createDepartment(token, deptForm);
       setDeptSuccess(true);
+      // ✅ Re-fetch departments so the new one appears immediately in the list
+      // Previously this was missing — the count stayed at 0 after creation
+      await loadDepartments();
       setTimeout(() => handleDeptOpenChange(false), 1500);
     } catch (err) {
       setDeptError(
@@ -203,6 +234,7 @@ export function useEmployeeViewModel() {
     departmentOptions,
     loadingEmployees,
     fetchError,
+    canViewEmployees,
     // Filters
     searchQuery,
     setSearchQuery,
