@@ -206,8 +206,7 @@ export default function EmployeeDataCards() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>View Profile</DropdownMenuItem>
-                            {/* ✅ Edit Details — opens pre-populated edit dialog */}
+                            {/* ✅ Only show actions that are implemented */}
                             {canManage && (
                               <DropdownMenuItem
                                 onClick={() => vm.handleEditOpen(emp)}
@@ -215,10 +214,6 @@ export default function EmployeeDataCards() {
                                 Edit Details
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem>
-                              View Leave History
-                            </DropdownMenuItem>
-                            {/* ✅ Delete — calls DELETE /v1/users/remove?email= */}
                             {canManage && (
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
